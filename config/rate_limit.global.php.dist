@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * This is the config file for Zf2RateLimit. Just drop this file into your config/autoload folder (don't
+ * forget to remove the .dist extension from the file), and configure it as you want
+ */
+
+return [
+    'rate_limit' => [
+        /**
+         * Set the list of allowed routes. Example: api*.
+         */
+        'routes' => [],
+
+        /**
+         * You needs configure Storage instance.
+         */
+        'storage' => '',
+
+        /**
+         * Set limit of requests.
+         */
+        'limit' => 5,
+
+        /**
+         * Set the rate limit period duration.
+         */
+        'period' => 30,
+    ]
+];

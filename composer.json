@@ -1,0 +1,25 @@
+{
+    "name": "lhpalacio/zf2-rate-limit",
+    "description": "A Zend Framework 2 module that helps you to deal with rate limit.",
+    "keywords": ["rate limit", "throttle", "API rate limit", "apigility"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Luiz Henrique Gomes Palácio",
+            "email": "lhpalacio@outlook.com"
+        }
+    ],
+    "require": {
+        "php": "^5.6",
+        "zendframework/zend-eventmanager": "~2.2",
+        "zendframework/zend-http": "~2.2",
+        "zendframework/zend-mvc": "~2.2",
+        "zendframework/zend-servicemanager": "~2.2"
+    },
+    "autoload": {
+       "psr-4": {
+           "Lhpalacio\\Zf2RateLimit\\": "src"
+       }
+    }
+}
