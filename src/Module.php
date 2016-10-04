@@ -39,6 +39,14 @@ class Module implements BootstrapListenerInterface, ConfigProviderInterface
     {
         /** @var Application $application */
         $application     = $event->getTarget();
+        $config          = $application->getConfig();
+
+        if (!isset($config['rate_limit']['storage'])
+            || empty($config['rate_limit']['storage'])
+        ) {
+            return;
+        }
+
         $serviceManager  = $application->getServiceManager();
         $eventManager    = $application->getEventManager();
 
