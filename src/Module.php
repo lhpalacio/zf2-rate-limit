@@ -40,10 +40,6 @@ class Module
         $application     = $e->getApplication();
         $config          = $application->getConfig();
 
-        echo "<pre>";
-        print_r($config);
-        die();
-
         if (!isset($config['rate_limit']['storage'])
             || empty($config['rate_limit']['storage'])
         ) {
