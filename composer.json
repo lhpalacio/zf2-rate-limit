@@ -10,16 +10,22 @@
             "email": "lhpalacio@outlook.com"
         }
     ],
+    "extra": {
+        "zf": {
+            "module": "Lhpalacio\\Zf2RateLimit"
+        }
+    },
     "require": {
-        "php": "^5.6",
-        "zendframework/zend-eventmanager": "~2.2",
-        "zendframework/zend-http": "~2.2",
-        "zendframework/zend-mvc": "~2.2",
-        "zendframework/zend-servicemanager": "~2.2"
+        "php": ">=5.6",
+        "zendframework/zend-eventmanager": "^2.6.2 || ^3.0",
+        "zendframework/zend-http": "^2.5.4",
+        "zendframework/zend-mvc-i18n": "^1.0",
+        "zendframework/zend-servicemanager": "^2.7.5 || ^3.0.3",
+        "zendframework/zend-cache": "^2.7.1"
     },
     "autoload": {
        "psr-4": {
-           "Lhpalacio\\Zf2RateLimit\\": "src"
+           "Lhpalacio\\Zf2RateLimit\\": "src/"
        }
     }
 }

@@ -25,7 +25,9 @@ use Zend\EventManager\EventManagerInterface;
 use Zend\Mvc\MvcEvent;
 use Zend\Http\Response as HttpResponse;
 use Zend\Http\Request as HttpRequest;
-use Zend\Mvc\Router\RouteMatch;
+use Zend\Router\RouteMatch;
+use ZF\ApiProblem\ApiProblem;
+use ZF\ApiProblem\ApiProblemResponse;
 
 /**
  * RateLimitRequestListener
@@ -49,50 +51,64 @@ class RateLimitRequestListener extends AbstractListenerAggregate
     }
 
     /**
-     * @param EventManagerInterface $events
-     * @param int $priority
+     * Attach to an event manager
+     *
+     * @param  EventManagerInterface $events
+     * @param  int $priority
+     * @return void
      */
     public function attach(EventManagerInterface $events, $priority = 1)
     {
-        $this->listeners[] = $events->attach(MvcEvent::EVENT_ROUTE, [$this, 'rateLimitHandler'], -1);
+        $this->listeners[] = $events->attach(MvcEvent::EVENT_ROUTE, [$this, 'onRoute']);
     }
 
     /**
-     * @param MvcEvent $event
-     * @return void|HttpResponse
+     * Listen to the "route" event and attempt to intercept the request
+     *
+     * If no matches are returned, triggers "dispatch.error" in order to
+     * create a 404 response.
+     *
+     * Seeds the event with the route match on completion.
+     *
+     * @param  MvcEvent $event
+     * @return null|RouteMatch
      */
-    public function rateLimitHandler(MvcEvent $event)
+    public function onRoute(MvcEvent $event)
     {
-        /** @var HttpRequest $request */
-        $request  = $event->getRequest();
-        /** @var HttpResponse $response */
-        $response = $event->getResponse();
+        $request    = $event->getRequest();
+        $router     = $event->getRouter();
+        $routeMatch = $router->match($request);
 
         if (!$request instanceof HttpRequest) {
             return;
         }
-
-        /** @var RouteMatch $routeMatch */
-        $routeMatch = $event->getRouteMatch();
 
         if (!$routeMatch instanceof RouteMatch || !$this->hasRoute($routeMatch)) {
             return;
         }
 
         try {
+            // Check if we're within the limit
             $this->rateLimitService->rateLimitHandler();
-        } catch (TooManyRequestsHttpException $exception) {
-            $response = new HttpResponse();
-            $response->setStatusCode(429)
-                ->setReasonPhrase($exception->getMessage());
 
+            // Update the response
+            $response = $event->getResponse();
+            $this->rateLimitService->ensureHeaders($response);
+            $event->setResponse($response);
+
+        } catch (TooManyRequestsHttpException $exception) {
+
+            // Generate a new response
+            $response = new ApiProblemResponse(
+                new ApiProblem(429, $exception->getMessage())
+            );
+
+            // Add the headers so clients will know when they can try aga
             $this->rateLimitService->ensureHeaders($response);
 
+            // And we're done here
             return $response;
         }
-
-        $this->rateLimitService->ensureHeaders($response);
-        $event->setResponse($response);
     }
 
     /**
