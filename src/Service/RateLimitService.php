@@ -18,9 +18,10 @@
 
 namespace Lhpalacio\Zf2RateLimit\Service;
 
-use Lhpalacio\Zf2RateLimit\Storage\StorageInterface;
 use Lhpalacio\Zf2RateLimit\Options\RateLimitOptions;
+use Zend\Cache\Storage\Adapter\AbstractAdapter;
 use Zend\Http\Response as HttpResponse;
+use Zend\Http\PhpEnvironment\RemoteAddress;
 use Lhpalacio\Zf2RateLimit\Exception\TooManyRequestsHttpException;
 
 /**
@@ -32,7 +33,7 @@ use Lhpalacio\Zf2RateLimit\Exception\TooManyRequestsHttpException;
 class RateLimitService
 {
     /**
-     * @var StorageInterface
+     * @var AbstractAdapter
      */
     private $storage;
 
@@ -45,7 +46,7 @@ class RateLimitService
      * @param StorageInterface $storage
      * @param RateLimitOptions $rateLimitOptions
      */
-    public function __construct(StorageInterface $storage, RateLimitOptions $rateLimitOptions)
+    public function __construct(AbstractAdapter $storage, RateLimitOptions $rateLimitOptions)
     {
         $this->storage = $storage;
         $this->rateLimitOptions = $rateLimitOptions;
@@ -60,7 +61,14 @@ class RateLimitService
             throw new TooManyRequestsHttpException('Too Many Requests');
         }
 
-        $this->storage->set($this->getUserIp() . '::' . time(), $this->rateLimitOptions->getPeriod());
+        // Get the data from the cache
+        $data = $this->getDataFromStorage();
+
+        // Set the current request time
+        $data[] = time();
+
+        // Set the data
+        $this->saveDataInStorage($data);
     }
 
     /**
@@ -92,8 +100,11 @@ class RateLimitService
      */
     private function getRemainingCalls()
     {
+        // Get the data from the cache
+        $data = $this->getDataFromStorage();
+
         $limit = $this->rateLimitOptions->getLimit();
-        $calls = $this->storage->count($this->getUserIp());
+        $calls = count($data);
 
         return $limit - $calls;
     }
@@ -103,23 +114,95 @@ class RateLimitService
      */
     private function getTimeToReset()
     {
-        $keys = $this->storage->getKeys($this->getUserIp());
+        // Get the data from the cache
+        $data = $this->getDataFromStorage();
 
-        $times = array_map(function ($key) {
-            return str_replace($this->getUserIp().'::', null, $key);
-        }, $keys);
-
-        $time = max($times);
-        $time = $time + $this->rateLimitOptions->getPeriod();
-        return $time;
+        if (empty($data)) {
+            return time();
+        }
+        else {
+            $time = max($data);
+            $time = $time + $this->rateLimitOptions->getPeriod();
+            return $time;
+        }
     }
 
     /**
-     * @return mixed
+     * @return array
+     */
+    private function getDataFromStorage()
+    {
+        // Get the data from the cache
+        $data = $this->storage->getItem($this->getUserIp(), $success);
+
+        if (!$success) {
+            // We had no value set
+            $data = [];
+        }
+        else
+        {
+            // Un"serialize" (unjsonize? :P)
+            $data = json_decode($data, true);
+
+            if (!is_array($data))
+            {
+                // Error prevention
+                $data = [];
+                $this->saveDataInStorage($data);
+            }
+
+            // Whether we need to update the data
+            $doUpdate = false;
+
+            foreach ($data as $key => $value) {
+                if ($value <= (time() - $this->rateLimitOptions->getPeriod())) {
+                    // Get rid of this
+                    unset($data[$key]);
+
+                    // Flag as needing update
+                    $doUpdate = true;
+                }
+            }
+
+            if ($doUpdate) {
+                // Set the new data object
+                $this->saveDataInStorage($data);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * @return bool
+     */
+    private function saveDataInStorage($data)
+    {
+        // Set the new data object
+        return $this->storage->setItem($this->getUserIp(), json_encode($data));
+    }
+
+    /**
+     * @return string
      */
     private function getUserIp()
     {
-        return $_SERVER['REMOTE_ADDR'];
+        // Begin grabbing the remote address
+        $remote = new RemoteAddress;
+        $remoteAddress = $remote->setUseProxy()->getIpAddress();
+
+        switch ($remoteAddress) {
+            case '::1':
+            case '127.0.0.1':
+                $remoteAddress = 'localhost';
+                break;
+
+            default:
+                $remoteAddress = str_replace(['.', ':'], '-', $remoteAddress);
+                break;
+        }
+
+        return $remoteAddress;
     }
 
     /**

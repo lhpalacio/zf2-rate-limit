@@ -8,22 +8,22 @@
 return [
     'rate_limit' => [
         /**
-         * Set the list of allowed routes. Example: api*.
+         * Set the list of routes that should be subject to rate limiting. Example: api*.
          */
         'routes' => [],
 
         /**
-         * You needs configure Storage instance.
+         * This should be an array compatible with Zend Cache.
          */
-        'storage' => '',
+        'storage' => [],
 
         /**
-         * Set limit of requests.
+         * Maximum number of requests per time period (configured below)
          */
         'limit' => 5,
 
         /**
-         * Set the rate limit period duration.
+         * Set the rate limit period duration (in seconds).
          */
         'period' => 30,
     ]

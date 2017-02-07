@@ -18,8 +18,10 @@
 
 namespace Lhpalacio\Zf2RateLimit\Factory;
 
+use Interop\Container\ContainerInterface;
 use Zend\ServiceManager\FactoryInterface;
 use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\Cache\StorageFactory;
 use Lhpalacio\Zf2RateLimit\Service\RateLimitService;
 use Lhpalacio\Zf2RateLimit\Options\RateLimitOptions;
 use RuntimeException;
@@ -34,21 +36,30 @@ class RateLimitServiceFactory implements FactoryInterface
 {
     /**
      * {@inheritDoc}
-     * @return RateLimitService
+     *
+     * @return PluginManager
      */
-    public function createService(ServiceLocatorInterface $serviceLocator)
+    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
         /* @var RateLimitOptions $rateLimitOptions */
-        $rateLimitOptions = $serviceLocator->get(RateLimitOptions::class);
+        $rateLimitOptions = $container->get(RateLimitOptions::class);
 
         $storage = $rateLimitOptions->getStorage();
 
-        if (!is_string($storage) || !$serviceLocator->has($storage)) {
+        if (!is_array($storage) || !$cache = StorageFactory::factory($storage)) {
             throw new RuntimeException('Unable to load storage.');
         }
 
-        $storage = $serviceLocator->get($storage);
+        return new RateLimitService($cache, $rateLimitOptions);
+    }
 
-        return new RateLimitService($storage, $rateLimitOptions);
+    /**
+     * {@inheritDoc}
+     * @return RateLimitService
+     */
+    public function createService(ServiceLocatorInterface $container, $name = null, $requestedName = null)
+    {
+        return $this($container, RateLimitService::class);
+
     }
 }

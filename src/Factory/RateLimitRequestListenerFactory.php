@@ -18,6 +18,7 @@
 
 namespace Lhpalacio\Zf2RateLimit\Factory;
 
+use Interop\Container\ContainerInterface;
 use Zend\ServiceManager\FactoryInterface;
 use Zend\ServiceManager\ServiceLocatorInterface;
 use Lhpalacio\Zf2RateLimit\Mvc\RateLimitRequestListener;
@@ -33,14 +34,20 @@ class RateLimitRequestListenerFactory implements FactoryInterface
 {
     /**
      * {@inheritDoc}
+     *
+     * @return PluginManager
+     */
+    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    {
+        return new RateLimitRequestListener($container->get(RateLimitService::class));
+    }
+
+    /**
+     * {@inheritDoc}
      * @return RateLimitRequestListener
      */
-    public function createService(ServiceLocatorInterface $serviceLocator)
+    public function createService(ServiceLocatorInterface $container, $name = null, $requestedName = null)
     {
-        /** @var RateLimitService $rateLimitService */
-        $rateLimitService = $serviceLocator->get(RateLimitService::class);
-
-        return new RateLimitRequestListener($rateLimitService);
+        return $this($container, RateLimitService::class);
     }
 }
-
