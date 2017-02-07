@@ -18,9 +18,8 @@
 
 namespace Lhpalacio\Zf2RateLimit;
 
+use Zend\Mvc\MvcEvent;
 use Zend\EventManager\EventInterface;
-use Zend\ModuleManager\Feature\BootstrapListenerInterface;
-use Zend\ModuleManager\Feature\ConfigProviderInterface;
 use Zend\Mvc\Application;
 use Lhpalacio\Zf2RateLimit\Mvc\RateLimitRequestListener;
 
@@ -30,16 +29,20 @@ use Lhpalacio\Zf2RateLimit\Mvc\RateLimitRequestListener;
  * @license MIT
  * @author Luiz Henrique Gomes Palácio <lhpalacio@outlook.com>
  */
-class Module implements BootstrapListenerInterface, ConfigProviderInterface
+class Module
 {
     /**
      * {@inheritDoc}
      */
-    public function onBootstrap(EventInterface $event)
+    public function onBootstrap(MvcEvent $e)
     {
         /** @var Application $application */
-        $application     = $event->getTarget();
+        $application     = $e->getApplication();
         $config          = $application->getConfig();
+
+        echo "<pre>";
+        print_r($config);
+        die();
 
         if (!isset($config['rate_limit']['storage'])
             || empty($config['rate_limit']['storage'])
